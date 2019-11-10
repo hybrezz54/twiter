@@ -17,7 +17,7 @@ html, body {
     font-weight: bold;
 }
 
-/* TWEET STYLES */
+/* TIMELINE STYLES */
 section.tweet.is-dark {
     /* background-color: #363636; */
     color: #f5f5f5;
@@ -47,7 +47,81 @@ section.tweet.is-dark .card p {
     padding: 1rem;
 }
 
+button.action {
+    background-color: rgb(10, 10, 10, 0.2);
+    border: none;
+    border-radius: 290486px;
+    color: #f5f5f5;
+    max-height: 60px;
+    max-width: 60px;
+    min-height: 60px;
+    min-width: 60px;
+    height: 60px;
+    width: 60px;
+    font-size: 0;
+}
+
+.action-edit {
+    display: flex;
+    padding: 0.75rem;
+}
+
 .action:hover {
-    /* background-color: coral; */
-    color: coral;
+    color: #afafaf;
+    cursor: pointer;
+}
+
+.action.action-tweet:hover {
+    color: #3298dc;
+}
+
+.action.action-like:hover {
+    color: rgb(221, 102, 58);
+}
+
+.action.action-retweet:hover {
+    color: rgb(29, 175, 29);
+}
+
+/* MODAL STYLES */
+.modal-content {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.modal-card .action {
+    color: #f5f5f5;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.modal-card .action-tweet {
+    display: flex;
+    padding: 0.75rem;
+}
+
+.modal-card .action-edit:hover, .modal-card .action-delete:hover {
+    color: #afafaf;
+}
+
+.modal-card-body {
+    background-color: transparent;
+}
+
+.modal-card textarea {
+    background: transparent;
+    color: #fff;
+    resize: none;
+    min-height: 15em !important;
+    font-size: 1.5rem;
+}
+
+.modal-card textarea::placeholder {
+    color: #fff;
+}
+
+.modal-card .card-footer {
+    border-top: none;
 }

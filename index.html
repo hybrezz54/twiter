@@ -8,7 +8,7 @@
     <title>COMP 426</title>
 
     <!-- Include links to CSS stylesheets below -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.5/css/bulma.min.css" />
+    <link rel="stylesheet" href="node_modules/bulma/css/bulma.min.css" />
     <link rel="stylesheet" href="node_modules/@mdi/font/css/materialdesignicons.min.css">
     <link rel="stylesheet" href="styles.css" />
 </head>
@@ -34,7 +34,7 @@
     </nav>
 
     <section class="hero is-medium is-dark is-bold">
-        <div class="hero-body">
+        <div class="hero-body has-text-centered">
             <div class="container">
                 <h1 class="title">
                     Go Twit
@@ -43,59 +43,20 @@
                 <h2 class="subtitle">
                     Spread the love!
                 </h2>
+
+                <button class="action action-tweet">
+                    <span class="icon">
+                        <i class="mdi mdi-twitter mdi-36px"></i>
+                    </span>
+                </button>
             </div>
         </div>
     </section>
 
-    <section class="tweet is-dark">
-        <div class="columns is-large">
-            <div class="column is-four-fifths">
-                <div class="card">
-                    <div class="card-content">
-                        <p class="title">
-                            “There are two hard things in computer science: cache invalidation, naming things, and
-                            off-by-one errors.”
-                        </p>
-                        <p class="subtitle">
-                            Jeff Atwood
-                        </p>
-                    </div>
-
-                    <footer class="card-footer">
-                        <p class="card-footer-item">
-                            <span>
-                                Edit &nbsp; <i class="mdi mdi-pencil"></i>
-                            </span>
-                        </p>
-                    </footer>
-                </div>
-            </div>
-
-            <div class="column has-text-centered">
-                <div class="actions">
-                    <div class="action">
-                        <span class="icon is-large">
-                            <i class="mdi mdi-heart mdi-48px"></i>
-                        </span>
-                    </div>
-
-                    <div class="action">
-                        <span class="icon is-large">
-                            <i class="mdi mdi-twitter-retweet mdi-48px"></i>
-                        </span>
-                    </div>
-
-                    <div class="action">
-                        <span class="icon is-large">
-                            <i class="mdi mdi-delete mdi-48px"></i>
-                        </span>
-                    </div>
-                </div>
-            </div>
-    </section>
+    <div id="tweets"></div>
 
     <!-- Include links to JavaScript files below -->
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="node_modules/jquery/dist/jquery.min.js"></script>
     <script src="node_modules/axios/dist/axios.min.js"></script>
     <script src="main.js" type="module"></script>
 </body>
