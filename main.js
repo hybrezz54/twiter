@@ -14,42 +14,38 @@ const MAX_TWEETS = 5;
  * @param {*} tweet A Tweet object
  */
 export const renderTweet = (tweet) => {
-    return `<section class="tweet is-dark" data-tweet="${tweet.id}">
+    return `<section class="tweet is-dark" data-tweet="${tweet.id}" data-mine="${tweet.isMine}">
                 <div class="columns is-large">
                     <div class="column is-four-fifths">
                         <div class="card has-text-centered">
                             <div class="card-content">
-                                <p class="is-size-4">
+                                <p class="body is-size-4">
                                     ${tweet.body}
                                 </p>
-                                <p class="subtitle is-size-6">
+                                <p class="subtitle author is-size-6">
                                     ${tweet.author}
                                 </p>
                             </div>
-
-                            <!-- <footer class="card-footer">
-                                
-                            </footer> -->
                         </div>
                     </div>
 
                     <div class="column has-text-centered">
                         <div class="actions">
-                            <div class="action action-like">
+                            <div class="action ${tweet.isLiked ? 'action-liked' : 'action-like'}" data-count="${tweet.likeCount}">
                                 <span class="icon is-large">
                                     <i class="mdi mdi-heart mdi-48px"></i>
                                 </span>
                             </div>
 
-                            <div class="action action-retweet">
+                            <div class="action action-retweet" data-count="${tweet.retweetCount}">
                                 <span class="icon is-large">
                                     <i class="mdi mdi-twitter-retweet mdi-48px"></i>
                                 </span>
                             </div>
 
-                            <div class="action action-delete">
+                            <div class="action action-reply">
                                 <span class="icon is-large">
-                                    <i class="mdi mdi-delete mdi-48px"></i>
+                                    <i class="mdi mdi-reply mdi-48px"></i>
                                 </span>
                             </div>
                         </div>
@@ -114,39 +110,43 @@ export const renderNewTweetModal = () => {
  * the user to create a Tweet
  */
 export const renderTweetModal = (tweet) => {
-    return `<div class="modal is-active">
+    return `<div class="modal is-active" data-tweet="${tweet.id}">
                 <div class="modal-background"></div>
 
                 <div class="modal-card">
                     <button id="close" class="delete" aria-label="close"></button>
 
                     <section class="modal-card-body">
-                        <div class="field is-horizontal">
-                            <div class="field-body">
-                                <div class="field">
-                                    <div class="control">
-                                        <textarea class="textarea" placeholder="What's happening?" maxlength="280"></textarea>
-                                    </div>
-                                </div>
-                            </div>
+                        <p class="title body">${tweet.body}</p>
+                        <h3 class="subtitle author">${tweet.author}</h3>
+                        
+                        <div class="tags">
+                            <span class="tag is-dark">${tweet.likeCount} Likes</span>
+                            <span class="tag is-dark">${tweet.retweetCount} Retweets</span>
                         </div>
                     </section>
 
                     <footer class="card-footer">
                         <div class="card-footer-item action action-edit">
                             <span>
-                                Edit &nbsp; <i class="mdi mdi-pencil"></i>
+                                Edit &nbsp;<i class="mdi mdi-pencil"></i>
+                            </span>
+                        </div>
+
+                        <div class="card-footer-item action action-reply" data-count="${tweet.replyCount}">
+                            <span>
+                                Reply &nbsp;<i class="mdi mdi-reply"></i>
                             </span>
                         </div>
 
                         <div class="card-footer-item actions">
-                            <div class="action action-like">
+                            <div class="action ${tweet.isLiked ? 'action-liked' : 'action-like'}" data-count="${tweet.likeCount}">
                                 <span class="icon">
                                     <i class="mdi mdi-heart mdi-24px"></i>
                                 </span>
                             </div>
 
-                            <div class="action action-retweet">
+                            <div class="action action-retweet" data-count="${tweet.retweetCount}">
                                 <span class="icon">
                                     <i class="mdi mdi-twitter-retweet mdi-24px"></i>
                                 </span>
@@ -212,6 +212,11 @@ export const getTweets = async (elmt) => {
     }
 }
 
+export const invalidate = (elmt) => {
+    elmt.empty();
+    getTweets(elmt);
+}
+
 // set up on page load
 $(document).ready(() => {
     // div to display tweets
@@ -225,23 +230,103 @@ $(document).ready(() => {
     // tweet button handler
     $tweets.on('click', '#tweet', async (event) => {
         const body = $('#tweet-body').val();
-        const result = await axios({
-            method: 'post',
-            url: 'https://comp426fa19.cs.unc.edu/a09/tweets',
-            withCredentials: true,
-            data: {
-                body: body
-            }
-        }).catch((err) => {
-            console.log(err);
-        });
 
-        // update tweets
-        if (result) {
-            $tweets.empty();
-            getTweets($tweets);
+        // if body contains val
+        if (body) {
+            const result = await axios({
+                method: 'post',
+                url: 'https://comp426fa19.cs.unc.edu/a09/tweets',
+                withCredentials: true,
+                data: {
+                    body: body
+                }
+            }).catch((err) => {
+                // not logged in
+                console.log(err);
+                $tweets.append(renderLoginModal());
+            });
+
+            // update tweets
+            if (result) {
+                invalidate($tweets);
+            }
         }
     });
+
+    // timeline tweet click handler
+    $tweets.on('click', 'section.tweet .card', async (event) => {
+        const id = event.currentTarget.parentNode.parentNode.parentNode.getAttribute('data-tweet');
+
+        // retreive tweet info
+        const result = await axios({
+            method: 'get',
+            url: `https://comp426fa19.cs.unc.edu/a09/tweets/${id}`,
+            withCredentials: true,
+        }).catch((err) => {
+            console.log(err);
+            $tweets.append(renderLoginModal());
+        });
+
+        // show dialog
+        if (result) {
+            $tweets.append(renderTweetModal(result.data));
+        }
+    });
+
+    // like tweet action click handler
+    $tweets.on('click', 'div.action-like', async (event) => {
+        const $tgt = $(event.currentTarget);
+        const id = $tgt.parent().parent().parent().parent().attr('data-tweet');
+        const count = parseInt($tgt.attr('data-count'));
+
+        // like tweet
+        const result = await axios({
+            method: 'put',
+            url: `https://comp426fa19.cs.unc.edu/a09/tweets/${id}/like`,
+            withCredentials: true,
+        }).catch((err) => {
+            // not logged in
+            console.log(err);
+            $tweets.append(renderLoginModal());
+        });
+
+        if (result) {
+            $tgt.removeClass('action-like').addClass('action-liked');
+            $tgt.attr('data-count', count + 1);
+            $('.tag:first-of-type').text((count + 1) + ' Likes');
+        }
+    });
+
+    // unlike tweet action click handler
+    $tweets.on('click', 'div.action-liked', async (event) => {
+        const $tgt = $(event.currentTarget);
+        const id = $tgt.parent().parent().parent().parent().attr('data-tweet');
+        const count = parseInt($tgt.attr('data-count'));
+
+        // unlike tweet
+        const result = await axios({
+            method: 'put',
+            url: `https://comp426fa19.cs.unc.edu/a09/tweets/${id}/unlike`,
+            withCredentials: true,
+        }).catch((err) => {
+            // not logged in
+            console.log(err);
+            $tweets.append(renderLoginModal());
+        });
+
+        if (result) {
+            $tgt.removeClass('action-liked').addClass('action-like');
+            $tgt.attr('data-count', count - 1);
+            $('.tag:first-of-type').text((count - 1) + ' Likes');
+        }
+    });
+
+    // action hover handler
+    // $tweets.on('mouseenter', 'div.action-like, div.action-retweet, div.action-reply', (event) => {
+    //     console.log("hi");
+    // }).on('mouseleave', 'div.action-like, div.action-retweet, div.action-reply', (event) => {
+    //     console.log("bye");
+    // });
 
     // modal close handler
     $tweets.on('click', '#close', (event) => {
