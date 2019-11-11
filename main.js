@@ -14,7 +14,7 @@ const MAX_TWEETS = 5;
  * @param {*} tweet A Tweet object
  */
 export const renderTweet = (tweet) => {
-    return `<section class="tweet is-dark" data-tweet="${tweet.id}" data-mine="${tweet.isMine}">
+    return `<section class="tweet is-dark" data-tweet="${tweet.id}">
                 <div class="columns is-large">
                     <div class="column is-four-fifths">
                         <div class="card has-text-centered">
@@ -58,7 +58,7 @@ export const renderTweet = (tweet) => {
  * the user to login
  */
 export const renderLoginModal = () => {
-    return `<div class="modal is-active">
+    return `<div class="modal is-active" data-tweet="-1">
                 <div class="modal-background"></div>
 
                 <div class="modal-content">
@@ -75,8 +75,8 @@ export const renderLoginModal = () => {
  * Render HTML to display a dialog for
  * the user to create a Tweet
  */
-export const renderNewTweetModal = () => {
-    return `<div class="modal is-active">
+export const renderNewTweetModal = (id = -1, body = '') => {
+    return `<div class="modal is-active" data-tweet="${id}">
                 <div class="modal-background"></div>
 
                 <div class="modal-card">
@@ -87,7 +87,7 @@ export const renderNewTweetModal = () => {
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        <textarea id="tweet-body" class="textarea" placeholder="What's happening?" maxlength="280"></textarea>
+                                        <textarea id="tweet-body" class="textarea" placeholder="What's happening?" maxlength="280">${body}</textarea>
                                     </div>
                                 </div>
                             </div>
@@ -95,9 +95,9 @@ export const renderNewTweetModal = () => {
                     </section>
 
                     <footer class="card-footer">
-                        <div id="tweet" class="card-footer-item action action-tweet">
+                        <div id="${body ? 'update' : 'tweet'}" class="card-footer-item action action-tweet">
                             <span>
-                                Tweet <i class="mdi mdi-twitter"></i>
+                                ${body ? 'Update' : 'Tweet'} <i class="mdi mdi-twitter"></i>
                             </span>
                         </div>
                     </footer>
@@ -127,7 +127,7 @@ export const renderTweetModal = (tweet) => {
                     </section>
 
                     <footer class="card-footer">
-                        <div class="card-footer-item action action-edit">
+                        <div class="card-footer-item action action-edit ${!tweet.isMine ? 'is-hidden' : ''}">
                             <span>
                                 Edit &nbsp;<i class="mdi mdi-pencil"></i>
                             </span>
@@ -152,7 +152,7 @@ export const renderTweetModal = (tweet) => {
                                 </span>
                             </div>
 
-                            <div class="action action-delete">
+                            <div class="action action-delete ${!tweet.isMine ? 'is-hidden' : ''}">
                                 <span class="icon">
                                     <i class="mdi mdi-delete mdi-24px"></i>
                                 </span>
@@ -253,9 +253,37 @@ $(document).ready(() => {
         }
     });
 
+    // update button handler
+    $tweets.on('click', '#update', async (event) => {
+        const body = $('#tweet-body').val();
+        const id = $(event.currentTarget).parent().parent().parent().attr('data-tweet');
+
+        // if body contains val
+        if (body) {
+            const result = await axios({
+                method: 'put',
+                url: `https://comp426fa19.cs.unc.edu/a09/tweets/${id}`,
+                withCredentials: true,
+                data: {
+                    body: body
+                },
+            }).catch((err) => {
+                // not logged in
+                console.log(err);
+                $tweets.append(renderLoginModal());
+            });
+
+            if (result) {
+                $('div.modal').remove();
+                $tweets.append(renderTweetModal(result.data));
+            }
+        }
+    });
+
     // timeline tweet click handler
     $tweets.on('click', 'section.tweet .card', async (event) => {
-        const id = event.currentTarget.parentNode.parentNode.parentNode.getAttribute('data-tweet');
+        const $tgt = $(event.currentTarget);
+        const id = $tgt.parent().parent().parent().attr('data-tweet');
 
         // retreive tweet info
         const result = await axios({
@@ -321,6 +349,38 @@ $(document).ready(() => {
         }
     });
 
+    // delete tweet action click handler
+    $tweets.on('click', 'div.action-delete', async (event) => {
+        const $tgt = $(event.currentTarget);
+        const id = $tgt.parent().parent().parent().parent().attr('data-tweet');
+
+        // delete tweet
+        const result = await axios({
+            method: 'delete',
+            url: `https://comp426fa19.cs.unc.edu/a09/tweets/${id}`,
+            withCredentials: true,
+        }).catch((err) => {
+            // not logged in
+            console.log(err);
+            $tweets.append(renderLoginModal());
+        });
+
+        if (result) {
+            $('div.modal').remove();
+            $(`[data-tweet=${id}]`).remove();
+        }
+    });
+
+    // edit tweet action click handler
+    $tweets.on('click', 'div.action-edit', async (event) => {
+        const $tgt = $(event.currentTarget);
+        const id = $tgt.parent().parent().parent().attr('data-tweet');
+        const body = $(`[data-tweet=${id}] section > p.body`).text();
+
+        // show tweet dialog
+        $tweets.append(renderNewTweetModal(id, body));
+    });
+
     // action hover handler
     // $tweets.on('mouseenter', 'div.action-like, div.action-retweet, div.action-reply', (event) => {
     //     console.log("hi");
@@ -329,8 +389,27 @@ $(document).ready(() => {
     // });
 
     // modal close handler
-    $tweets.on('click', '#close', (event) => {
+    $tweets.on('click', '#close', async (event) => {
+        const id = parseInt(event.currentTarget.parentNode.parentNode.getAttribute('data-tweet'));
         $('div.modal').remove();
+        // invalidate($tweets);
+
+        // retreive tweet info
+        if (id >= 0) {
+            const result = await axios({
+                method: 'get',
+                url: `https://comp426fa19.cs.unc.edu/a09/tweets/${id}`,
+                withCredentials: true,
+            }).catch((err) => {
+                console.log(err);
+                $tweets.append(renderLoginModal());
+            });
+
+            // update tweet in feed
+            if (result) {
+                $(`[data-tweet=${id}]`).replaceWith(renderTweet(result.data));
+            }
+        }
     });
 
     // update with 50 recent tweets
