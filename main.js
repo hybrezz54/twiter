@@ -4,8 +4,19 @@
  * Author: Hamzah Chaudhry
  */
 
-/** Maximum number of tweets to display */
-const MAX_TWEETS = 5;
+/** Number of tweets to load at a time */
+const TWEET_LIMIT = 10;
+
+const formatDate = (date) => {
+    let hours = date.getHours();
+    let minutes = date.getMinutes();
+    let ampm = hours >= 12 ? 'pm' : 'am';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    minutes = minutes < 10 ? '0' + minutes : minutes;
+    const strTime = hours + ':' + minutes + ampm;
+    return date.getMonth() + 1 + "/" + date.getDate() + "/" + date.getFullYear() + "  " + strTime;
+};
 
 /**
  * Render HTML to display the body and author of
@@ -13,7 +24,8 @@ const MAX_TWEETS = 5;
  * 
  * @param {*} tweet A Tweet object
  */
-export const renderTweet = (tweet) => {
+const renderTweet = (tweet) => {
+    // if (tweet.type === "tweet") {
     return `<section class="tweet is-dark" data-tweet="${tweet.id}">
                 <div class="columns is-large">
                     <div class="column is-four-fifths">
@@ -51,13 +63,14 @@ export const renderTweet = (tweet) => {
                         </div>
                     </div>
                 </section>`;
+    // }
 };
 
 /**
  * Render HTML to display a dialog asking
  * the user to login
  */
-export const renderLoginModal = () => {
+const renderLoginModal = () => {
     return `<div class="modal is-active" data-tweet="-1">
                 <div class="modal-background"></div>
 
@@ -75,7 +88,7 @@ export const renderLoginModal = () => {
  * Render HTML to display a dialog for
  * the user to create a Tweet
  */
-export const renderNewTweetModal = (id = -1, body = '') => {
+const renderNewTweetModal = (id = -1, body = '') => {
     return `<div class="modal is-active" data-tweet="${id}">
                 <div class="modal-background"></div>
 
@@ -109,7 +122,8 @@ export const renderNewTweetModal = (id = -1, body = '') => {
  * Render HTML to display a dialog for
  * the user to create a Tweet
  */
-export const renderTweetModal = (tweet) => {
+const renderTweetModal = (tweet) => {
+    const createTime = new Date(tweet.createdAt);
     return `<div class="modal is-active" data-tweet="${tweet.id}">
                 <div class="modal-background"></div>
 
@@ -124,6 +138,10 @@ export const renderTweetModal = (tweet) => {
                             <span class="tag is-dark">${tweet.likeCount} Likes</span>
                             <span class="tag is-dark">${tweet.retweetCount} Retweets</span>
                         </div>
+
+                        <p class="date">
+                            ${formatDate(createTime)}
+                        </p>
                     </section>
 
                     <footer class="card-footer">
@@ -170,25 +188,36 @@ export const renderTweetModal = (tweet) => {
  * @param {*} elmt The root element to append the rendered HTML of the tweets to
  * @param {*} tweets The list of Tweet objects 
  * @param {*} start The index to start in the list tweets
+ * @param {*} limit The number of tweets to add
  */
-export const addTweets = (elmt, tweets, start = 0) => {
-    let size = (tweets.length > MAX_TWEETS) ? MAX_TWEETS : tweets.length;
+const addTweets = (elmt, tweets) => {
+    let numTweets = elmt.attr('data-num');
 
-    for (let i = start; i < (start + size); i++) {
+    // add tweets to page
+    for (let i = 0; i < tweets.length; i++) {
         elmt.append(renderTweet(tweets[i]));
+        numTweets++;
     }
+
+    // update attribute for number of tweets on page
+    elmt.attr('data-num', numTweets);
 }
 
 /**
  * 
- * @param {*} elmt 
+ * @param {*} elmt A jQuery element to append new elements too
  */
-export const getTweets = async (elmt) => {
+const getTweets = async (elmt, skip = 0, limit = TWEET_LIMIT) => {
     // retreive and display tweets
     const resp = await axios({
         method: 'get',
         url: 'https://comp426fa19.cs.unc.edu/a09/tweets',
         withCredentials: true,
+        params: {
+            skip: skip,
+            limit: TWEET_LIMIT,
+            where: { type: ['tweet', 'retweet'] }
+        }
     }).catch((err) => {
         // not logged in
         console.log(err);
@@ -202,18 +231,19 @@ export const getTweets = async (elmt) => {
         addTweets(elmt, tweets);
 
         // add more tweets on scroll
-        $(window).off();
-        $(window).scroll(() => {
-            if ($(window).scrollTop() == $(document).height() - $(window).height()) {
-                const num = elmt.children().length;
-                addTweets(elmt, tweets, num);
-            }
-        });
+        // $(window).off();
+        // $(window).scroll(() => {
+        //     if ($(window).scrollTop() == $(document).height() - $(window).height()) {
+        //         const num = elmt.children().length;
+        //         addTweets(elmt, tweets, num);
+        //     }
+        // });
     }
 }
 
-export const invalidate = (elmt) => {
+const invalidate = (elmt) => {
     elmt.empty();
+    elmt.attr('data-num', 0);
     getTweets(elmt);
 }
 
@@ -221,6 +251,7 @@ export const invalidate = (elmt) => {
 $(document).ready(() => {
     // div to display tweets
     const $tweets = $('#tweets');
+    let page = 0;
 
     // new tweet button hadnler
     $('button.action-tweet').on('click', (event) => {
@@ -412,6 +443,13 @@ $(document).ready(() => {
         }
     });
 
-    // update with 50 recent tweets
+    // add more tweets on scroll
+    $(window).scroll(() => {
+        if ($(window).scrollTop() == $(document).height() - $(window).height()) {
+            getTweets($tweets, page += TWEET_LIMIT);
+        }
+    });
+
+    // update with recent tweets
     getTweets($tweets);
 });
