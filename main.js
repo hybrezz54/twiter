@@ -19,54 +19,6 @@ const formatDate = (date) => {
 };
 
 /**
- * Render HTML to display the body and author of
- * a Tweet object
- * 
- * @param {*} tweet A Tweet object
- */
-const renderTweet = (tweet) => {
-    // if (tweet.type === "tweet") {
-    return `<section class="tweet is-dark" data-tweet="${tweet.id}">
-                <div class="columns is-large">
-                    <div class="column is-four-fifths">
-                        <div class="card has-text-centered">
-                            <div class="card-content">
-                                <p class="body is-size-4">
-                                    ${tweet.body}
-                                </p>
-                                <p class="subtitle author is-size-6">
-                                    ${tweet.author}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="column has-text-centered">
-                        <div class="actions">
-                            <div class="action ${tweet.isLiked ? 'action-liked' : 'action-like'}" data-count="${tweet.likeCount}">
-                                <span class="icon is-large">
-                                    <i class="mdi mdi-heart mdi-48px"></i>
-                                </span>
-                            </div>
-
-                            <div class="action action-retweet" data-count="${tweet.retweetCount}">
-                                <span class="icon is-large">
-                                    <i class="mdi mdi-twitter-retweet mdi-48px"></i>
-                                </span>
-                            </div>
-
-                            <div class="action action-reply">
-                                <span class="icon is-large">
-                                    <i class="mdi mdi-reply mdi-48px"></i>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </section>`;
-    // }
-};
-
-/**
  * Render HTML to display a dialog asking
  * the user to login
  */
@@ -88,8 +40,8 @@ const renderLoginModal = () => {
  * Render HTML to display a dialog for
  * the user to create a Tweet
  */
-const renderNewTweetModal = (id = -1, body = '') => {
-    return `<div class="modal is-active" data-tweet="${id}">
+const renderNewTweetModal = (id = -1, parentId = -1, body = '') => {
+    return `<div class="modal is-active" data-tweet="${id}" data-parent="${parentId}">
                 <div class="modal-background"></div>
 
                 <div class="modal-card">
@@ -119,11 +71,103 @@ const renderNewTweetModal = (id = -1, body = '') => {
 }
 
 /**
+ * Render HTML to display the body and author of
+ * a Tweet object
+ * 
+ * @param {*} tweet A Tweet object
+ */
+const renderTweet = (tweet) => {
+    let retweetIndicator = '';
+    if (tweet.type === 'retweet') {
+        retweetIndicator = `<p class="body retweet-body is-size-6">
+                                ${tweet.body}
+                            </p>
+
+                            <p class="subtitle retweet-author is-size-6">
+                                <span class="icon">
+                                    <i class="mdi mdi-twitter-retweet"></i>
+                                </span>
+                                by ${tweet.author}
+                            </p>`;
+    }
+
+    return `<section class="tweet is-dark" data-tweet="${tweet.id}">
+                <div class="columns is-large">
+                    <div class="column is-four-fifths">
+                        <div class="card has-text-centered">
+                            <div class="card-content">
+                                <p class="body is-size-4">
+                                    ${tweet.type === 'retweet' && tweet.parent ? tweet.parent['body'] : tweet.body}
+                                </p>
+
+                                <p class="subtitle author is-size-5">
+                                    ${tweet.type === 'retweet' && tweet.parent ? tweet.parent['author'] : tweet.author}
+                                </p>
+
+                                ${retweetIndicator}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="column has-text-centered">
+                        <div class="actions">
+                            <div class="action ${tweet.isLiked ? 'action-liked' : 'action-like'}" data-count="${tweet.likeCount}">
+                                <span class="icon is-large">
+                                    <i class="mdi mdi-heart mdi-48px"></i>
+                                </span>
+                            </div>
+
+                            <div class="action action-retweet" data-count="${tweet.retweetCount}">
+                                <span class="icon is-large">
+                                    <i class="mdi mdi-twitter-retweet mdi-48px"></i>
+                                </span>
+                            </div>
+
+                            <div class="action action-reply">
+                                <span class="icon is-large">
+                                    <i class="mdi mdi-reply mdi-48px"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </section>`;
+};
+
+/**
  * Render HTML to display a dialog for
  * the user to create a Tweet
  */
 const renderTweetModal = (tweet) => {
     const createTime = new Date(tweet.createdAt);
+
+    // show button only if has replies
+    let replyIndicator = '';
+    if (tweet.replyCount > 0) {
+        replyIndicator = `<hr />
+                          <div>
+                            <div class="card-footer-item action action-edit">
+                                <span>
+                                    View Replies...
+                                </span>
+                            </div>
+                          </div>`;
+    }
+
+    // indicate if tweet is a retweet
+    let retweetIndicator = '';
+    if (tweet.type === 'retweet') {
+        retweetIndicator = `<h3 class="retweet-author is-size-6">
+                                <span class="icon">
+                                    <i class="mdi mdi-twitter-retweet"></i>
+                                </span>
+                                by ${tweet.author}           
+                            </h3>
+
+                            <p class="body retweet-body is-size-6">
+                                ${tweet.body}
+                            </p>`;
+    }
+
     return `<div class="modal is-active" data-tweet="${tweet.id}">
                 <div class="modal-background"></div>
 
@@ -131,8 +175,15 @@ const renderTweetModal = (tweet) => {
                     <button id="close" class="delete" aria-label="close"></button>
 
                     <section class="modal-card-body">
-                        <p class="title body">${tweet.body}</p>
-                        <h3 class="subtitle author">${tweet.author}</h3>
+                        ${retweetIndicator}
+
+                        <p class="title body">
+                            ${tweet.type === 'retweet' && tweet.parent ? tweet.parent['body'] : tweet.body}
+                        </p>
+
+                        <h3 class="subtitle author">
+                            ${tweet.type === 'retweet' && tweet.parent ? tweet.parent['author'] : tweet.author}
+                        </h3>
                         
                         <div class="tags">
                             <span class="tag is-dark">${tweet.likeCount} Likes</span>
@@ -177,8 +228,26 @@ const renderTweetModal = (tweet) => {
                             </div>
                         </div>
                     </footer>
+
+                    ${replyIndicator}
                 </div>
             </div>`;
+}
+
+/**
+ * 
+ * @param {*} reply 
+ */
+const renderReply = (reply) => {
+    // TODO
+}
+
+/**
+ * 
+ * @param {*} replies 
+ */
+const renderReplyModal = (replies) => {
+    // TODO
 }
 
 /**
@@ -216,7 +285,9 @@ const getTweets = async (elmt, skip = 0, limit = TWEET_LIMIT) => {
         params: {
             skip: skip,
             limit: TWEET_LIMIT,
-            where: { type: ['tweet', 'retweet'] }
+            where: {
+                type: ['tweet', 'retweet']
+            }
         }
     }).catch((err) => {
         // not logged in
@@ -323,6 +394,12 @@ $(document).ready(() => {
             withCredentials: true,
         }).catch((err) => {
             console.log(err);
+
+            if (err.includes('404')) {
+                invalidate($tweets);
+                return;
+            }
+
             $tweets.append(renderLoginModal());
         });
 
@@ -409,7 +486,7 @@ $(document).ready(() => {
         const body = $(`[data-tweet=${id}] section > p.body`).text();
 
         // show tweet dialog
-        $tweets.append(renderNewTweetModal(id, body));
+        $tweets.append(renderNewTweetModal(id, -1, body));
     });
 
     // action hover handler

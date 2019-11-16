@@ -124,6 +124,10 @@ button.action {
     background-color: transparent;
 }
 
+.modal-card-body .retweet-body {
+    margin-bottom: 2rem;
+}
+
 .modal-card p, .modal-card h3, .modal-card textarea, .modal-card textarea::placeholder {
     color: #fff;
 }
