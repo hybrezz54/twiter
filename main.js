@@ -111,7 +111,7 @@ const renderTweet = (tweet) => {
 
                     <div class="column has-text-centered">
                         <div class="actions">
-                            <div class="action ${tweet.isLiked ? 'action-liked' : 'action-like'}" data-count="${tweet.likeCount}">
+                            <div class="action ${tweet.isLiked ? 'action-liked' : 'action-like'} ${tweet.isMine ? 'is-hidden' : ''}" data-count="${tweet.likeCount}">
                                 <span class="icon is-large">
                                     <i class="mdi mdi-heart mdi-48px"></i>
                                 </span>
@@ -168,7 +168,7 @@ const renderTweetModal = (tweet) => {
                             </p>`;
     }
 
-    return `<div class="modal is-active" data-tweet="${tweet.id}">
+    return `<div class="modal is-active" data-tweet="${tweet.id}" data-parent="${tweet.parentId ? tweet.parentId : '-1'}">
                 <div class="modal-background"></div>
 
                 <div class="modal-card">
@@ -209,7 +209,7 @@ const renderTweetModal = (tweet) => {
                         </div>
 
                         <div class="card-footer-item actions">
-                            <div class="action ${tweet.isLiked ? 'action-liked' : 'action-like'}" data-count="${tweet.likeCount}">
+                            <div class="action ${tweet.isLiked ? 'action-liked' : 'action-like'} ${tweet.isMine ? 'is-hidden' : ''}" data-count="${tweet.likeCount}">
                                 <span class="icon">
                                     <i class="mdi mdi-heart mdi-24px"></i>
                                 </span>
@@ -332,26 +332,37 @@ $(document).ready(() => {
     // tweet button handler
     $tweets.on('click', '#tweet', async (event) => {
         const body = $('#tweet-body').val();
+        const parentId = parseInt($(event.currentTarget).parent().parent().parent().attr('data-parent'));
 
-        // if body contains val
-        if (body) {
-            const result = await axios({
-                method: 'post',
-                url: 'https://comp426fa19.cs.unc.edu/a09/tweets',
-                withCredentials: true,
-                data: {
-                    body: body
-                }
-            }).catch((err) => {
-                // not logged in
-                console.log(err);
-                $tweets.append(renderLoginModal());
-            });
+        // return if no body
+        if (body && parentId === -1)
+            return;
 
-            // update tweets
-            if (result) {
-                invalidate($tweets);
-            }
+        // create object for request
+        const data = {
+            body: body
+        };
+
+        // set appropriate params on retweet & replies
+        if (parentId > -1) {
+            data['type'] = 'retweet';
+            data['parent'] = parentId;
+        }
+
+        const result = await axios({
+            method: 'post',
+            url: 'https://comp426fa19.cs.unc.edu/a09/tweets',
+            withCredentials: true,
+            data: data
+        }).catch((err) => {
+            // not logged in
+            console.log(err);
+            $tweets.append(renderLoginModal());
+        });
+
+        // update tweets
+        if (result) {
+            invalidate($tweets);
         }
     });
 
@@ -483,10 +494,20 @@ $(document).ready(() => {
     $tweets.on('click', 'div.action-edit', async (event) => {
         const $tgt = $(event.currentTarget);
         const id = $tgt.parent().parent().parent().attr('data-tweet');
-        const body = $(`[data-tweet=${id}] section > p.body`).text();
+        const parentId = $tgt.parent().parent().parent().attr('data-parent');
+        const body = $(`[data-tweet=${id}] section > p.body:first`).text().trim();
 
         // show tweet dialog
-        $tweets.append(renderNewTweetModal(id, -1, body));
+        $tweets.append(renderNewTweetModal(id, parentId, body));
+    });
+
+    // retweet action handler
+    $tweets.on('click', 'div.action-retweet', async (event) => {
+        const $tgt = $(event.currentTarget);
+        const parentId = $tgt.parent().parent().parent().parent().attr('data-tweet');
+
+        // show tweet dialog
+        $tweets.append(renderNewTweetModal(-1, parentId));
     });
 
     // action hover handler
