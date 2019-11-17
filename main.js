@@ -40,8 +40,8 @@ const renderLoginModal = () => {
  * Render HTML to display a dialog for
  * the user to create a Tweet
  */
-const renderNewTweetModal = (id = -1, parentId = -1, body = '') => {
-    return `<div class="modal is-active" data-tweet="${id}" data-parent="${parentId}">
+const renderNewTweetModal = (id = -1, parentId = -1, reply = false, body = '') => {
+    return `<div class="modal is-active" data-tweet="${id}" data-parent="${parentId}" ${reply ? 'reply' : ''}>
                 <div class="modal-background"></div>
 
                 <div class="modal-card">
@@ -62,7 +62,7 @@ const renderNewTweetModal = (id = -1, parentId = -1, body = '') => {
                     <footer class="card-footer">
                         <div id="${body ? 'update' : 'tweet'}" class="card-footer-item action action-tweet">
                             <span>
-                                ${body ? 'Update' : 'Tweet'} <i class="mdi mdi-twitter"></i>
+                                ${body ? 'Update' : reply ? 'Reply' : 'Tweet'} <i class="mdi mdi-twitter"></i>
                             </span>
                         </div>
                     </footer>
@@ -145,7 +145,7 @@ const renderTweetModal = (tweet) => {
     if (tweet.replyCount > 0) {
         replyIndicator = `<hr />
                           <div>
-                            <div class="card-footer-item action action-edit">
+                            <div class="card-footer-item action action-view-replies">
                                 <span>
                                     View Replies...
                                 </span>
@@ -333,9 +333,10 @@ $(document).ready(() => {
     $tweets.on('click', '#tweet', async (event) => {
         const body = $('#tweet-body').val();
         const parentId = parseInt($(event.currentTarget).parent().parent().parent().attr('data-parent'));
+        const isReply = $(event.currentTarget).parent().parent().parent().attr('reply') === '';
 
-        // return if no body
-        if (body && parentId === -1)
+        // return if no body in tweets and replies
+        if ((isReply && !body) || (parentId === -1 && !body))
             return;
 
         // create object for request
@@ -343,27 +344,31 @@ $(document).ready(() => {
             body: body
         };
 
-        // set appropriate params on retweet & replies
+        // set appropriate params on retweet
         if (parentId > -1) {
             data['type'] = 'retweet';
             data['parent'] = parentId;
         }
 
-        const result = await axios({
+        // set appropriate parms on reply
+        if (isReply && parentId > -1) {
+            data['type'] = 'reply';
+            data['parent'] = parentId;
+        }
+
+        // create request
+        await axios({
             method: 'post',
             url: 'https://comp426fa19.cs.unc.edu/a09/tweets',
             withCredentials: true,
             data: data
-        }).catch((err) => {
-            // not logged in
+        }).then(() => { // update tweets
+            console.log('Request successful!');
+            invalidate($tweets);
+        }).catch((err) => { // assume not logged in
             console.log(err);
             $tweets.append(renderLoginModal());
         });
-
-        // update tweets
-        if (result) {
-            invalidate($tweets);
-        }
     });
 
     // update button handler
@@ -490,6 +495,15 @@ $(document).ready(() => {
         }
     });
 
+    // reply tweet action click handler
+    $tweets.on('click', 'div.action-reply', (event) => {
+        const $tgt = $(event.currentTarget);
+        const parentId = $tgt.parent().parent().parent().attr('data-tweet');
+
+        // show tweet dialog
+        $tweets.append(renderNewTweetModal(-1, parentId, true));
+    });
+
     // edit tweet action click handler
     $tweets.on('click', 'div.action-edit', async (event) => {
         const $tgt = $(event.currentTarget);
@@ -498,7 +512,7 @@ $(document).ready(() => {
         const body = $(`[data-tweet=${id}] section > p.body:first`).text().trim();
 
         // show tweet dialog
-        $tweets.append(renderNewTweetModal(id, parentId, body));
+        $tweets.append(renderNewTweetModal(id, parentId, false, body));
     });
 
     // retweet action handler
