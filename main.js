@@ -57,7 +57,7 @@ const renderNewTweetModal = (id = -1, parentId = -1, reply = false, body = '') =
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        <textarea id="tweet-body" class="textarea" placeholder="What's happening?" maxlength="280">${body}</textarea>
+                                        <textarea id="tweet-body" class="textarea" placeholder="${reply ? 'Tweet your reply' : (parentId > -1) ? 'Add a comment if you want' : 'What\'s happening?'}" maxlength="280">${body}</textarea>
                                     </div>
                                 </div>
                             </div>
@@ -240,16 +240,18 @@ const renderTweetModal = (tweet) => {
 }
 
 /**
+ * Render HTML for a single reply to a Tweet
  * 
- * @param {*} reply 
+ * @param {*} reply A Tweet object that has a parentId
  */
 const renderReply = (reply) => {
     // TODO
 }
 
 /**
+ * Render HTML for all replies to a Tweet
  * 
- * @param {*} replies 
+ * @param {*} replies A list of Tweet objects each with a parentId
  */
 const renderReplyModal = (replies) => {
     // TODO
@@ -439,11 +441,15 @@ $(document).ready(() => {
         const id = $tgt.parent().parent().parent().parent().attr('data-tweet');
         const count = parseInt($tgt.attr('data-count'));
 
-        // like tweet
-        const result = await axios({
+        // create request to like tweet
+        await axios({
             method: 'put',
             url: `https://comp426fa19.cs.unc.edu/a09/tweets/${id}/like`,
             withCredentials: true,
+        }).then(() => {
+            $tgt.removeClass('action-like').addClass('action-liked');
+            $tgt.attr('data-count', count + 1);
+            $('.tag:first-of-type').text((count + 1) + ' Likes');
         }).catch((err) => {
             console.log(err);
 
@@ -456,12 +462,6 @@ $(document).ready(() => {
             // assume not logged in
             $tweets.append(renderLoginModal());
         });
-
-        if (result) {
-            $tgt.removeClass('action-like').addClass('action-liked');
-            $tgt.attr('data-count', count + 1);
-            $('.tag:first-of-type').text((count + 1) + ' Likes');
-        }
     });
 
     // unlike tweet action click handler
@@ -470,11 +470,15 @@ $(document).ready(() => {
         const id = $tgt.parent().parent().parent().parent().attr('data-tweet');
         const count = parseInt($tgt.attr('data-count'));
 
-        // unlike tweet
-        const result = await axios({
+        // create request to unlike tweet
+        await axios({
             method: 'put',
             url: `https://comp426fa19.cs.unc.edu/a09/tweets/${id}/unlike`,
             withCredentials: true,
+        }).then(() => {
+            $tgt.removeClass('action-liked').addClass('action-like');
+            $tgt.attr('data-count', count - 1);
+            $('.tag:first-of-type').text((count - 1) + ' Likes');
         }).catch((err) => {
             console.log(err);
 
@@ -487,12 +491,6 @@ $(document).ready(() => {
             // assume not logged in
             $tweets.append(renderLoginModal());
         });
-
-        if (result) {
-            $tgt.removeClass('action-liked').addClass('action-like');
-            $tgt.attr('data-count', count - 1);
-            $('.tag:first-of-type').text((count - 1) + ' Likes');
-        }
     });
 
     // delete tweet action click handler
@@ -500,21 +498,19 @@ $(document).ready(() => {
         const $tgt = $(event.currentTarget);
         const id = $tgt.parent().parent().parent().parent().attr('data-tweet');
 
-        // delete tweet
-        const result = await axios({
+        // create request to delete tweet
+        await axios({
             method: 'delete',
             url: `https://comp426fa19.cs.unc.edu/a09/tweets/${id}`,
             withCredentials: true,
+        }).then(() => {
+            $('div.modal').remove();
+            $(`[data-tweet=${id}]`).remove();
         }).catch((err) => {
             // assume not logged in
             console.log(err);
             $tweets.append(renderLoginModal());
         });
-
-        if (result) {
-            $('div.modal').remove();
-            $(`[data-tweet=${id}]`).remove();
-        }
     });
 
     // reply tweet action click handler
