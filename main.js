@@ -5,8 +5,13 @@
  */
 
 /** Number of tweets to load at a time */
-const TWEET_LIMIT = 10;
+const TWEET_LIMIT = 20;
 
+/**
+ * Return a string-formatted date
+ * 
+ * @param {*} date Date object
+ */
 const formatDate = (date) => {
     let hours = date.getHours();
     let minutes = date.getMinutes();
@@ -92,7 +97,7 @@ const renderTweet = (tweet) => {
     }
 
     return `<section class="tweet is-dark" data-tweet="${tweet.id}">
-                <div class="columns is-large">
+                <div class="columns is-large" data-tweet="${tweet.id}">
                     <div class="column is-four-fifths">
                         <div class="card has-text-centered">
                             <div class="card-content">
@@ -264,6 +269,7 @@ const addTweets = (elmt, tweets) => {
 
     // add tweets to page
     for (let i = 0; i < tweets.length; i++) {
+        // TODO only append tweets not already in page
         elmt.append(renderTweet(tweets[i]));
         numTweets++;
     }
@@ -411,11 +417,13 @@ $(document).ready(() => {
         }).catch((err) => {
             console.log(err);
 
-            if (err.includes('404')) {
+            // tweet deleted
+            if (err.toString().includes('404')) {
                 invalidate($tweets);
                 return;
             }
 
+            // assume not logged in
             $tweets.append(renderLoginModal());
         });
 
@@ -437,8 +445,15 @@ $(document).ready(() => {
             url: `https://comp426fa19.cs.unc.edu/a09/tweets/${id}/like`,
             withCredentials: true,
         }).catch((err) => {
-            // not logged in
             console.log(err);
+
+            // tweet deleted
+            if (err.toString().includes('404')) {
+                invalidate($tweets);
+                return;
+            }
+
+            // assume not logged in
             $tweets.append(renderLoginModal());
         });
 
@@ -461,8 +476,15 @@ $(document).ready(() => {
             url: `https://comp426fa19.cs.unc.edu/a09/tweets/${id}/unlike`,
             withCredentials: true,
         }).catch((err) => {
-            // not logged in
             console.log(err);
+
+            // tweet deleted
+            if (err.toString().includes('404')) {
+                invalidate($tweets);
+                return;
+            }
+
+            // assume not logged in
             $tweets.append(renderLoginModal());
         });
 
@@ -484,7 +506,7 @@ $(document).ready(() => {
             url: `https://comp426fa19.cs.unc.edu/a09/tweets/${id}`,
             withCredentials: true,
         }).catch((err) => {
-            // not logged in
+            // assume not logged in
             console.log(err);
             $tweets.append(renderLoginModal());
         });
@@ -503,6 +525,15 @@ $(document).ready(() => {
         // show tweet dialog
         $tweets.append(renderNewTweetModal(-1, parentId, true));
     });
+    
+    // retweet action handler
+    $tweets.on('click', 'div.action-retweet', async (event) => {
+        const $tgt = $(event.currentTarget);
+        const parentId = $tgt.parent().parent().parent().parent().attr('data-tweet');
+
+        // show tweet dialog
+        $tweets.append(renderNewTweetModal(-1, parentId));
+    });
 
     // edit tweet action click handler
     $tweets.on('click', 'div.action-edit', async (event) => {
@@ -513,15 +544,6 @@ $(document).ready(() => {
 
         // show tweet dialog
         $tweets.append(renderNewTweetModal(id, parentId, false, body));
-    });
-
-    // retweet action handler
-    $tweets.on('click', 'div.action-retweet', async (event) => {
-        const $tgt = $(event.currentTarget);
-        const parentId = $tgt.parent().parent().parent().parent().attr('data-tweet');
-
-        // show tweet dialog
-        $tweets.append(renderNewTweetModal(-1, parentId));
     });
 
     // action hover handler
@@ -545,6 +567,14 @@ $(document).ready(() => {
                 withCredentials: true,
             }).catch((err) => {
                 console.log(err);
+
+                // tweet deleted
+                if (err.toString().includes('404')) {
+                    invalidate($tweets);
+                    return;
+                }
+
+                // assume not logged in
                 $tweets.append(renderLoginModal());
             });
 
