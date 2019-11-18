@@ -67,7 +67,7 @@ button.action {
     font-size: 0;
 }
 
-.action-edit, .action-reply {
+.action-edit, .action-reply, .action-view-replies {
     display: flex;
     padding: 0.75rem;
 }
@@ -116,7 +116,7 @@ button.action {
     color: rgb(221, 102, 58);
 }
 
-.modal-card .action-edit:hover, .modal-card .action-delete:hover, .modal-card .action-reply:hover {
+.modal-card .action-edit:hover, .modal-card .action-delete:hover, .modal-card .action-reply:hover, .action-view-replies:hover {
     color: #afafaf;
 }
 

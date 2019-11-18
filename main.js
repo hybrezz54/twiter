@@ -244,8 +244,51 @@ const renderTweetModal = (tweet) => {
  * 
  * @param {*} reply A Tweet object that has a parentId
  */
-const renderReply = (reply) => {
-    // TODO
+const renderReply = (reply, i) => {
+    const createTime = new Date(reply.createdAt);
+
+    return `<div class="columns is-large" data-tweet="${reply.id}">
+                <div class="column is-three-fifths">
+                    <p class="body is-size-4">
+                        ${reply.body}
+                    </p>
+
+                    <p class="subtitle author is-size-5">
+                        ${reply.author}
+                    </p>
+
+                    <div class="tags">
+                        <span class="tag is-dark">${reply.likeCount} Likes</span>
+                        <span class="tag is-dark">${reply.retweetCount} Retweets</span>
+                    </div>
+
+                    <p class="date">
+                        ${formatDate(createTime)}
+                    </p>
+                </div>
+
+                <div class="column" data-tweet="${reply.id}">
+                    <div class="actions">
+                        <div class="action ${reply.isLiked ? 'action-liked' : 'action-like'} ${reply.isMine ? 'is-hidden' : ''}" data-count="${reply.likeCount}">
+                            <span class="icon is-large">
+                                <i class="mdi mdi-heart mdi-36px"></i>
+                            </span>
+                        </div>
+
+                        <div class="action action-retweet" data-count="${reply.retweetCount}">
+                            <span class="icon is-large">
+                                <i class="mdi mdi-twitter-retweet mdi-36px"></i>
+                            </span>
+                        </div>
+
+                        <div class="action action-reply">
+                            <span class="icon is-large">
+                                <i class="mdi mdi-reply mdi-36px"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
 }
 
 /**
@@ -253,8 +296,18 @@ const renderReply = (reply) => {
  * 
  * @param {*} replies A list of Tweet objects each with a parentId
  */
-const renderReplyModal = (replies) => {
-    // TODO
+const renderReplyModal = (id, replies) => {
+    return `<div class="modal is-active" data-parent="${id}">
+                <div class="modal-background"></div>
+
+                <div class="modal-card">
+                    <button id="close" class="delete" aria-label="close"></button>
+
+                    <section class="modal-card-body">
+                        ${replies.map(renderReply).join('<hr />')}
+                    </section>
+                </div>
+            </div>`;
 }
 
 /**
@@ -281,6 +334,7 @@ const addTweets = (elmt, tweets) => {
 }
 
 /**
+ * Get an index of Tweet objects from the server
  * 
  * @param {*} elmt A jQuery element to append new elements too
  */
@@ -521,9 +575,9 @@ $(document).ready(() => {
         // show tweet dialog
         $tweets.append(renderNewTweetModal(-1, parentId, true));
     });
-    
+
     // retweet action handler
-    $tweets.on('click', 'div.action-retweet', async (event) => {
+    $tweets.on('click', 'div.action-retweet', (event) => {
         const $tgt = $(event.currentTarget);
         const parentId = $tgt.parent().parent().parent().parent().attr('data-tweet');
 
@@ -532,7 +586,7 @@ $(document).ready(() => {
     });
 
     // edit tweet action click handler
-    $tweets.on('click', 'div.action-edit', async (event) => {
+    $tweets.on('click', 'div.action-edit', (event) => {
         const $tgt = $(event.currentTarget);
         const id = $tgt.parent().parent().parent().attr('data-tweet');
         const parentId = $tgt.parent().parent().parent().attr('data-parent');
@@ -540,6 +594,33 @@ $(document).ready(() => {
 
         // show tweet dialog
         $tweets.append(renderNewTweetModal(id, parentId, false, body));
+    });
+
+    // view replies action click handler
+    $tweets.on('click', 'div.action-view-replies', async (event) => {
+        const $tgt = $(event.currentTarget);
+        const id = $tgt.parent().parent().parent().attr('data-tweet');
+
+        // create request to get tweet
+        await axios({
+            method: 'get',
+            url: `https://comp426fa19.cs.unc.edu/a09/tweets/${id}`,
+            withCredentials: true,
+        }).then((result) => {
+            if (result.data['replies'])
+                $tweets.append(renderReplyModal(result.data['id'], result.data['replies']))
+        }).catch((err) => {
+            console.log(err);
+
+            // tweet deleted
+            if (err.toString().includes('404')) {
+                invalidate($tweets);
+                return;
+            }
+
+            // assume not logged in
+            $tweets.append(renderLoginModal());
+        });
     });
 
     // action hover handler
