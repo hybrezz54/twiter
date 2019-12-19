@@ -1,2 +1,2 @@
-# 2048Game
-A 2048 Game clone made for a class assignment
+# twiter
+A Twiter clone made for a class assignment
