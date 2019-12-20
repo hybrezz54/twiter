@@ -1,5 +1,5 @@
 # twiter
-A Twiter clone made for a class assignment made with the Bulma CSS framework and using the jQuery and Axios libraries.
+A Twiter clone made for a class assignment made with the Bulma CSS framework and using the jQuery and Axios libraries. The clone is able to create and reply to tweets, see replies, like and retweet, and delete and edit your own tweets.
 
 ## Screenshots
 ### Landing Page
