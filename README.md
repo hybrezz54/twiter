@@ -1,5 +1,5 @@
 # twiter
-A Twiter clone made for a class assignment
+A Twiter clone made for a class assignment made with the Bulma CSS framework and using the jQuery and Axios libraries.
 
 ## Screenshots
 ### Landing Page
@@ -10,6 +10,22 @@ A Twiter clone made for a class assignment
 
 ### New Tweet View
 ![New Tweet](Screenshot_2019-12-20_2.png)
+
+## Requirements
+At minimum, your app must allow users to:
+- Retrieve and display a "news feed" containing the 50 most recent tweets. Use the Index route to retrieve the news feed data from the server.
+- For each tweet in the news feed, display:
+  - The name of the user who posted the tweet
+  - The tweet body text
+  - The number of likes
+  - The number of retweets
+  - Whether the current user has liked the tweet
+  - A button that allows the user to toggle whether they **like the tweet**
+  - A button that allows the user to **reply to the tweet**
+  - A button that allows the user to **retweet the tweet**
+- For tweets that were posted by the logged-in user, include a button that allows the user to edit their tweet. When the user clicks this button, create and display an edit form with a `<textarea>` field that is prepopulated with the tweet's current body text. After the user finishes making changes, use the Update route to save the new tweet body text to the server.
+- For tweets that were posted by the logged-in user, include a button that allows the user to delete their tweet. When the user clicks this button, use the Destroy endpoint to save the user's action to the server.
+- Provide a button that allows the user to post a new tweet. When the user clicks this button, create and display an edit form with a `<textarea>` field to receive the tweet body text. After the user finishes composing the tweet, use the Create endpoint to save the new tweet on the server.
 
 ## API
 ### INDEX Endpoint
